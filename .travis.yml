@@ -1,0 +1,36 @@
+sudo: required
+language: bash
+branches:
+  only:
+    - master
+services:
+  - docker
+before_install:
+  - sudo apt-get install -y dos2unix
+  - docker info
+  - docker run --rm --privileged multiarch/qemu-user-static:register --reset
+  - dos2unix manifest.yml Dockerfile *.sh
+install:
+  - echo "-------- Manifest --------";
+  - sed -i -e "s|%docker_repo%|$DOCKER_REPO|" manifest.yml
+  - cat manifest.yml
+  - cp Dockerfile Dockerfile.$ARCH;
+  - echo "-------- Dockerfile $ARCH --------";
+  - cat Dockerfile.$ARCH;
+  - docker build --build-arg ARCH=$ALPINE_ARCH -f Dockerfile.$ARCH -t $DOCKER_REPO:$ARCH .;
+  - docker run --rm $DOCKER_REPO:$ARCH uname -a;
+after_success:
+  - export MT_SHA256="80906341c3306e3838437eeb08fff5da2c38bd89149019aa301c7745e07ea8f9"
+  - sudo curl -fSL "https://github.com/estesp/manifest-tool/releases/download/v0.9.0/manifest-tool-linux-amd64" -o "/usr/local/bin/manifest-tool"
+  - echo "${MT_SHA256}  /usr/local/bin/manifest-tool" | sha256sum -c -
+  - sudo chmod a+x "/usr/local/bin/manifest-tool"
+  - echo "manifest-tool installed!"
+  - docker login -u=$DOCKER_USERNAME -p=$DOCKER_PASSWORD
+  - docker push $DOCKER_REPO:$ARCH;
+  - manifest-tool push from-spec manifest.yml
+matrix:
+  fast_finish: true
+env:
+  matrix:
+    - ARCH=armhf ALPINE_ARCH=armhf
+    - ARCH=amd64 ALPINE_ARCH=amd64

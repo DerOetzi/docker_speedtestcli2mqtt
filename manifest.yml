@@ -1,0 +1,14 @@
+image: %docker_repo%
+tags: [latest]
+manifests:
+  -
+    image: %docker_repo%:amd64
+    platform:
+      architecture: amd64
+      os: linux
+  -
+    image: %docker_repo%:armhf
+    platform:
+      architecture: arm
+      variant: v7
+      os: linux
